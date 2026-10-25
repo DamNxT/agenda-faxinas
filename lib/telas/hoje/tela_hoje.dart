@@ -67,6 +67,12 @@ class _TelaHojeState extends State<TelaHoje> {
                       endereco: dados.clientes[faxina.clienteId]!.endereco,
                       valorCentavos: dados.valorDe(faxina),
                       detalhe: descreverFaxina(faxina),
+                      aoTocar: () => mostrarOpcoesFaxina(
+                        context: context,
+                        faxina: faxina,
+                        dados: dados,
+                        repositorio: RepositorioAgenda(widget.banco),
+                      ),
                     ),
                   ),
             ],

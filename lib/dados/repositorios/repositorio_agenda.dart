@@ -137,4 +137,84 @@ class RepositorioAgenda {
   Future<void> excluirAvulso(int id) => (_banco.delete(
     _banco.atendimentosAvulsos,
   )..where((a) => a.id.equals(id))).go();
+
+  /// Mover uma faxina para [novaData].
+  /// Para faxina fixa, grava uma exceção para a data original sem mexer nas
+  /// semanas seguintes. Para faxina avulsa, altera a data do registro avulso.
+  Future<int> moverFaxina({
+    required FaxinaDoDia faxina,
+    required DateTime novaData,
+  }) async {
+    final destino = soDia(novaData);
+    if (faxina.tipo == TipoFaxina.avulsa) {
+      final avulsoId = faxina.avulsoId;
+      if (avulsoId != null) {
+        await (_banco.update(_banco.atendimentosAvulsos)
+              ..where((a) => a.id.equals(avulsoId)))
+            .write(AtendimentosAvulsosCompanion(data: Value(destino)));
+      }
+      return 0;
+    }
+
+    final regra = faxina.regra;
+    if (regra == null) return 0;
+    final original = soDia(faxina.dataOriginal ?? faxina.data);
+
+    return _banco.into(_banco.excecoes).insertOnConflictUpdate(
+          ExcecoesCompanion.insert(
+            regraId: regra.id,
+            dataOriginal: original,
+            novaData: Value(destino),
+          ),
+        );
+  }
+
+  /// Cancela só esta data da faxina.
+  /// Para faxina fixa, cria uma exceção com [novaData] nula.
+  /// Para faxina avulsa, exclui o registro avulso.
+  Future<void> cancelarFaxina(FaxinaDoDia faxina) async {
+    if (faxina.tipo == TipoFaxina.avulsa) {
+      final avulsoId = faxina.avulsoId;
+      if (avulsoId != null) {
+        await excluirAvulso(avulsoId);
+      }
+      return;
+    }
+
+    final regra = faxina.regra;
+    if (regra == null) return;
+    final original = soDia(faxina.dataOriginal ?? faxina.data);
+
+    await _banco.into(_banco.excecoes).insertOnConflictUpdate(
+          ExcecoesCompanion.insert(
+            regraId: regra.id,
+            dataOriginal: original,
+            novaData: const Value(null),
+          ),
+        );
+  }
+
+  /// Encerra uma regra de faxina fixa a partir de [dataFim].
+  Future<void> encerrarRegraFixa({
+    required int regraId,
+    required DateTime dataFim,
+  }) async {
+    await (_banco.update(_banco.regrasRecorrencia)
+          ..where((r) => r.id.equals(regraId)))
+        .write(RegrasRecorrenciaCompanion(dataFim: Value(soDia(dataFim))));
+  }
+
+  /// Desfaz a exceção de mover ou cancelar uma data de uma regra fixa.
+  Future<void> removerExcecao({
+    required int regraId,
+    required DateTime dataOriginal,
+  }) async {
+    await (_banco.delete(_banco.excecoes)
+          ..where(
+            (e) =>
+                e.regraId.equals(regraId) &
+                e.dataOriginal.equals(soDia(dataOriginal)),
+          ))
+        .go();
+  }
 }

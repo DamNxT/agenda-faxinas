@@ -71,8 +71,12 @@ class _TelaAgendaState extends State<TelaAgenda> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) =>
-          _ListaDoDia(dia: dia, dados: dados, ehHoje: mesmoDia(dia, _hoje)),
+      builder: (_) => _ListaDoDia(
+        dia: dia,
+        dados: dados,
+        ehHoje: mesmoDia(dia, _hoje),
+        banco: widget.banco,
+      ),
     );
   }
 
@@ -302,11 +306,13 @@ class _ListaDoDia extends StatelessWidget {
     required this.dia,
     required this.dados,
     required this.ehHoje,
+    required this.banco,
   });
 
   final DateTime dia;
   final DadosAgenda dados;
   final bool ehHoje;
+  final BancoDados banco;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +341,15 @@ class _ListaDoDia extends StatelessWidget {
                     valorCentavos: dados.valorDe(faxina),
                     detalhe: descreverFaxina(faxina),
                     destacarHoje: ehHoje,
+                    aoTocar: () async {
+                      Navigator.of(context).pop();
+                      await mostrarOpcoesFaxina(
+                        context: context,
+                        faxina: faxina,
+                        dados: dados,
+                        repositorio: RepositorioAgenda(banco),
+                      );
+                    },
                   ),
                 ),
             const SizedBox(height: 16),

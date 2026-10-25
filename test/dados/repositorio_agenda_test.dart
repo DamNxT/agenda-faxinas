@@ -114,4 +114,78 @@ void main() {
       isEmpty,
     );
   });
+
+  test('moverFaxina altera só aquela data e mantém a semana seguinte normal', () async {
+    final id = await clientes.inserir(nome: 'Cliente A', valorPadraoCentavos: 15000);
+    await agenda.criarFaxinaFixa(
+      clienteId: id,
+      diasSemana: [DateTime.monday],
+      intervaloSemanas: 1,
+      dataInicio: DateTime(2026, 8, 3), // segunda
+    );
+
+    var dados = await agenda.carregar();
+    final faxinaDia10 = dados.faxinasDoDia(DateTime(2026, 8, 10)).single;
+
+    // Mover de segunda 10/08 para terça 11/08
+    await agenda.moverFaxina(
+      faxina: faxinaDia10,
+      novaData: DateTime(2026, 8, 11),
+    );
+
+    dados = await agenda.carregar();
+    // Segunda 10/08 não tem faxina
+    expect(dados.faxinasDoDia(DateTime(2026, 8, 10)), isEmpty);
+
+    // Terça 11/08 tem a faxina movida
+    final faxinaMovida = dados.faxinasDoDia(DateTime(2026, 8, 11)).single;
+    expect(faxinaMovida.clienteId, id);
+    expect(faxinaMovida.dataOriginal, DateTime(2026, 8, 10));
+
+    // Segunda 17/08 continua normal
+    final faxinaSegundaSeguinte = dados.faxinasDoDia(DateTime(2026, 8, 17)).single;
+    expect(faxinaSegundaSeguinte.clienteId, id);
+    expect(faxinaSegundaSeguinte.dataOriginal, isNull);
+  });
+
+  test('cancelarFaxina remove só aquela data e mantém a semana seguinte normal', () async {
+    final id = await clientes.inserir(nome: 'Cliente B', valorPadraoCentavos: 15000);
+    await agenda.criarFaxinaFixa(
+      clienteId: id,
+      diasSemana: [DateTime.monday],
+      intervaloSemanas: 1,
+      dataInicio: DateTime(2026, 8, 3),
+    );
+
+    var dados = await agenda.carregar();
+    final faxinaDia10 = dados.faxinasDoDia(DateTime(2026, 8, 10)).single;
+
+    await agenda.cancelarFaxina(faxinaDia10);
+
+    dados = await agenda.carregar();
+    expect(dados.faxinasDoDia(DateTime(2026, 8, 10)), isEmpty);
+    expect(dados.faxinasDoDia(DateTime(2026, 8, 17)), hasLength(1));
+  });
+
+  test('encerrarRegraFixa define a dataFim da regra', () async {
+    final id = await clientes.inserir(nome: 'Cliente C', valorPadraoCentavos: 15000);
+    await agenda.criarFaxinaFixa(
+      clienteId: id,
+      diasSemana: [DateTime.monday],
+      intervaloSemanas: 1,
+      dataInicio: DateTime(2026, 8, 3),
+    );
+
+    var dados = await agenda.carregar();
+    final regra = dados.regras.single;
+
+    await agenda.encerrarRegraFixa(
+      regraId: regra.id,
+      dataFim: DateTime(2026, 8, 10),
+    );
+
+    dados = await agenda.carregar();
+    expect(dados.faxinasDoDia(DateTime(2026, 8, 10)), hasLength(1));
+    expect(dados.faxinasDoDia(DateTime(2026, 8, 17)), isEmpty);
+  });
 }

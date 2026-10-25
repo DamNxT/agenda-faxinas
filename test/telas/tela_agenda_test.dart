@@ -4,6 +4,7 @@ import 'package:agenda_faxinas/dados/repositorios/repositorio_clientes.dart';
 import 'package:agenda_faxinas/tema/tema_app.dart';
 import 'package:agenda_faxinas/telas/agenda/calendario.dart';
 import 'package:agenda_faxinas/telas/agenda/tela_agenda.dart';
+import 'package:agenda_faxinas/widgets/cartao_faxina.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -260,4 +261,77 @@ void main() {
     expect(await banco.select(banco.atendimentosAvulsos).get(), isEmpty);
     await fecharTela(tester);
   });
+
+  testWidgets(
+    'ao mover faxina de segunda para terça, semana seguinte continua normal',
+    (tester) async {
+      await criarClienteA(); // Cliente A na segunda (26/10) e quinta (29/10)
+      await abrirTela(tester);
+
+      // Toca na segunda 26/10
+      await tocar(tester, dia(2026, 10, 26));
+      expect(find.text('Segunda-feira, 26 de outubro'), findsWidgets);
+
+      // Toca no cartão da faxina para abrir opções
+      await tocar(tester, find.widgetWithText(CartaoFaxina, 'Cliente A'));
+      expect(find.text('Mudar de dia'), findsOneWidget);
+      expect(find.text('Cancelar esta faxina'), findsOneWidget);
+
+      // Seleciona "Mudar de dia"
+      await tocar(tester, find.text('Mudar de dia'));
+
+      // Escolhe terça-feira 27/10 no DatePicker
+      await tester.tap(find.text('27'));
+      await tester.pumpAndSettle();
+      await tocar(tester, find.text('OK'));
+
+      // Verifica aviso de sucesso
+      expect(
+        find.text('Faxina movida para Terça, 27/10/2026.'),
+        findsOneWidget,
+      );
+
+      // Na segunda 26/10 não tem mais Cliente A
+      expect(
+        find.descendant(
+          of: dia(2026, 10, 26),
+          matching: find.text('Cliente A'),
+        ),
+        findsNothing,
+      );
+
+      // Na terça 27/10 agora tem Cliente A com aviso "remarcada de segunda"
+      expect(
+        find.descendant(
+          of: dia(2026, 10, 27),
+          matching: find.text('Cliente A'),
+        ),
+        findsOneWidget,
+      );
+      await tocar(tester, dia(2026, 10, 27));
+      expect(
+        find.text('Fixa: toda semana (remarcada de segunda)'),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text('Fechar'));
+
+      // Avança para a próxima semana (2/11 a 8/11)
+      await tocar(tester, find.byTooltip('Próxima semana'));
+      expect(find.text('2 a 8 de novembro'), findsOneWidget);
+
+      // Na segunda 02/11 a faxina do Cliente A continua normal
+      expect(
+        find.descendant(
+          of: dia(2026, 11, 2),
+          matching: find.text('Cliente A'),
+        ),
+        findsOneWidget,
+      );
+      await tocar(tester, dia(2026, 11, 2));
+      expect(find.text('Fixa: toda semana'), findsOneWidget);
+      await tocar(tester, find.text('Fechar'));
+
+      await fecharTela(tester);
+    },
+  );
 }

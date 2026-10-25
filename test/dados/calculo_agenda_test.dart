@@ -262,5 +262,43 @@ void main() {
       ]);
       expect(agenda[d(2026, 10, 16)]!.single.dataOriginal, d(2026, 10, 15));
     });
+
+    test('mover faxina de segunda dia 10 para terça dia 11 deixa a segunda dia 17 normal', () {
+      final regraSegunda = regra(
+        id: 1,
+        clienteId: 1,
+        dias: [DateTime.monday],
+        inicio: d(2026, 8, 3), // segunda
+      );
+      final agenda = calcularAgenda(
+        regras: [regraSegunda],
+        excecoes: [
+          // Mover segunda 10/08 para terça 11/08
+          Excecao(
+            id: 1,
+            regraId: 1,
+            dataOriginal: d(2026, 8, 10),
+            novaData: d(2026, 8, 11),
+          ),
+        ],
+        avulsos: const [],
+        de: d(2026, 8, 10),
+        ate: d(2026, 8, 23),
+      );
+
+      // Segunda 10/08 foi movida (não aparece no dia 10)
+      expect(agenda[d(2026, 8, 10)], isNull);
+
+      // Terça 11/08 tem a faxina movida de segunda
+      expect(agenda[d(2026, 8, 11)], isNotNull);
+      expect(agenda[d(2026, 8, 11)]!.single.dataOriginal, d(2026, 8, 10));
+
+      // Segunda 17/08 continua normal (sem ser afetada)
+      expect(agenda[d(2026, 8, 17)], isNotNull);
+      expect(agenda[d(2026, 8, 17)]!.single.dataOriginal, isNull);
+
+      // Terça 18/08 não tem faxina
+      expect(agenda[d(2026, 8, 18)], isNull);
+    });
   });
 }

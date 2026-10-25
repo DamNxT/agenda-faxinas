@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../dados/agenda/calculo_agenda.dart';
 import '../../dados/banco/banco_dados.dart';
+import '../../dados/repositorios/repositorio_agenda.dart';
 import '../../tema/tema_app.dart';
 import '../../util/datas.dart';
 import '../../widgets/avatar_cliente.dart';
+import '../../widgets/avisos.dart';
+import '../../widgets/botao_principal.dart';
 
 export '../../widgets/titulo_campo.dart';
 
@@ -155,11 +158,195 @@ class BotaoData extends StatelessWidget {
 }
 
 /// Ex.: "Fixa: toda semana", "Fixa: a cada 15 dias", "Só desta vez".
+/// Se foi remarcada, inclui o aviso visual: " (remarcada de segunda)".
 String descreverFaxina(FaxinaDoDia faxina) {
-  if (faxina.tipo == TipoFaxina.avulsa) return 'Só desta vez';
-  return switch (faxina.regra?.intervaloSemanas) {
-    1 => 'Fixa: toda semana',
-    2 => 'Fixa: a cada 15 dias',
-    final n => 'Fixa: a cada $n semanas',
+  final base = switch (faxina.tipo) {
+    TipoFaxina.avulsa => 'Só desta vez',
+    TipoFaxina.fixa => switch (faxina.regra?.intervaloSemanas) {
+        1 => 'Fixa: toda semana',
+        2 => 'Fixa: a cada 15 dias',
+        final n => 'Fixa: a cada $n semanas',
+      },
   };
+  final original = faxina.dataOriginal;
+  if (original != null) {
+    final diaSemana = nomesDiasSemana[original.weekday]!.toLowerCase();
+    return '$base (remarcada de $diaSemana)';
+  }
+  return base;
+}
+
+enum _OpcaoFaxina { mudarDia, cancelar, encerrarFixa }
+
+/// Janela de opções ao tocar em uma faxina: Mudar de dia, Cancelar ou Encerrar.
+Future<void> mostrarOpcoesFaxina({
+  required BuildContext context,
+  required FaxinaDoDia faxina,
+  required DadosAgenda dados,
+  required RepositorioAgenda repositorio,
+}) async {
+  final cliente = dados.clientes[faxina.clienteId];
+  if (cliente == null) return;
+
+  final dataAtual = faxina.data;
+  final dataOriginal = faxina.dataOriginal ?? dataAtual;
+
+  final opcao = await showModalBottomSheet<_OpcaoFaxina>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(cliente.nome, style: Theme.of(ctx).textTheme.headlineMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Faxina de ${formatarDiaCompleto(dataAtual)}',
+              style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                    color: CoresApp.textoSecundario,
+                  ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(ctx).pop(_OpcaoFaxina.mudarDia),
+              icon: const Icon(Icons.calendar_today, size: 28),
+              label: const Text('Mudar de dia'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(60),
+                alignment: Alignment.centerLeft,
+                foregroundColor: CoresApp.texto,
+                textStyle:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(ctx).pop(_OpcaoFaxina.cancelar),
+              icon: const Icon(Icons.cancel_outlined,
+                  size: 28, color: CoresApp.erro),
+              label: const Text('Cancelar esta faxina',
+                  style: TextStyle(color: CoresApp.erro)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(60),
+                alignment: Alignment.centerLeft,
+                foregroundColor: CoresApp.erro,
+                side: const BorderSide(color: CoresApp.erro, width: 2),
+                textStyle:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (faxina.tipo == TipoFaxina.fixa && faxina.regra != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(_OpcaoFaxina.encerrarFixa),
+                icon: const Icon(Icons.event_busy_outlined,
+                    size: 28, color: CoresApp.erro),
+                label: const Text('Encerrar faxina fixa para sempre',
+                    style: TextStyle(color: CoresApp.erro)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                  alignment: Alignment.centerLeft,
+                  foregroundColor: CoresApp.erro,
+                  side: const BorderSide(color: CoresApp.erro, width: 2),
+                  textStyle: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            BotaoPrincipal(
+              texto: 'Voltar',
+              tipo: TipoBotao.secundario,
+              aoTocar: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  if (opcao == null || !context.mounted) return;
+
+  switch (opcao) {
+    case _OpcaoFaxina.mudarDia:
+      final novaData = await showDatePicker(
+        context: context,
+        initialDate: dataAtual,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100),
+        helpText: 'Escolha a nova data para a faxina',
+        cancelText: 'Cancelar',
+        confirmText: 'OK',
+      );
+      if (novaData == null || !context.mounted) return;
+      final destino = soDia(novaData);
+      if (mesmoDia(destino, dataAtual)) return;
+
+      await repositorio.moverFaxina(faxina: faxina, novaData: destino);
+      if (!context.mounted) return;
+
+      mostrarAviso(
+        context,
+        'Faxina movida para ${formatarDiaCurto(destino)}.',
+        aoDesfazer: () async {
+          if (faxina.tipo == TipoFaxina.fixa && faxina.regra != null) {
+            await repositorio.removerExcecao(
+              regraId: faxina.regra!.id,
+              dataOriginal: dataOriginal,
+            );
+          } else {
+            await repositorio.moverFaxina(faxina: faxina, novaData: dataAtual);
+          }
+        },
+      );
+
+    case _OpcaoFaxina.cancelar:
+      final confirmou = await confirmarAcao(
+        context,
+        titulo: 'Cancelar esta faxina?',
+        mensagem:
+            'A faxina de ${cliente.nome} do dia ${formatarDiaCurto(dataAtual)} será cancelada. As próximas continuarão normais.',
+        textoConfirmar: 'Sim, cancelar',
+      );
+      if (!confirmou || !context.mounted) return;
+
+      await repositorio.cancelarFaxina(faxina);
+      if (!context.mounted) return;
+
+      mostrarAviso(
+        context,
+        'Faxina do dia ${formatarDiaCurto(dataAtual)} cancelada.',
+        aoDesfazer: () async {
+          if (faxina.tipo == TipoFaxina.fixa && faxina.regra != null) {
+            await repositorio.removerExcecao(
+              regraId: faxina.regra!.id,
+              dataOriginal: dataOriginal,
+            );
+          }
+        },
+      );
+
+    case _OpcaoFaxina.encerrarFixa:
+      final confirmou = await confirmarAcao(
+        context,
+        titulo: 'Encerrar faxina fixa?',
+        mensagem:
+            'As faxinas de ${cliente.nome} a partir do dia ${formatarDiaCurto(dataAtual)} deixarão de acontecer.',
+        textoConfirmar: 'Sim, encerrar',
+      );
+      if (!confirmou || !context.mounted) return;
+
+      final diaAnterior = somarDias(dataOriginal, -1);
+      await repositorio.encerrarRegraFixa(
+        regraId: faxina.regra!.id,
+        dataFim: diaAnterior,
+      );
+      if (!context.mounted) return;
+
+      mostrarAviso(context, 'Faxina fixa encerrada.');
+  }
 }
