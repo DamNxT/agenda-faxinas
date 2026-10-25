@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Grava datas como texto legível (ex.: 2026-10-24T00:00:00.000).
+          store_date_time_values_as_text: true
