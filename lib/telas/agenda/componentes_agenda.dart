@@ -193,9 +193,10 @@ Future<void> mostrarOpcoesFaxina({
 
   final opcao = await showModalBottomSheet<_OpcaoFaxina>(
     context: context,
+    isScrollControlled: true,
     showDragHandle: true,
     builder: (ctx) => SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
