@@ -4,13 +4,12 @@ import 'package:agenda_faxinas/dados/repositorios/repositorio_clientes.dart';
 import 'package:agenda_faxinas/dados/repositorios/repositorio_doces.dart';
 import 'package:agenda_faxinas/telas/ganhos/tela_ganhos.dart';
 import 'package:agenda_faxinas/tema/tema_app.dart';
+import 'package:agenda_faxinas/util/dinheiro.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
-import 'package:agenda_faxinas/util/dinheiro.dart';
 
 final hoje = DateTime(2026, 10, 26);
 
@@ -46,6 +45,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> fecharTela(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('mostra resumo e detalhamento de ganhos do mês', (tester) async {
     final clienteId = await clientes.inserir(
       nome: 'Cliente A',
@@ -72,5 +76,7 @@ void main() {
     expect(find.text('1 realizada'), findsOneWidget);
     expect(find.text('Cliente A'), findsOneWidget);
     expect(find.text('Venda de doces'), findsOneWidget);
+
+    await fecharTela(tester);
   });
 }

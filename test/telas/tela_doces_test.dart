@@ -39,6 +39,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> fecharTela(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('mostra vendas de doces do mês', (tester) async {
     await doces.registrarVendaDoces(
       data: DateTime(2026, 10, 10),
@@ -51,5 +56,7 @@ void main() {
     expect(find.text('Outubro de 2026'), findsOneWidget);
     expect(find.text('10 doces levados ao açougue'), findsOneWidget);
     expect(find.text(formatarReais(5000)), findsWidgets);
+
+    await fecharTela(tester);
   });
 }
