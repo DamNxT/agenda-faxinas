@@ -34,7 +34,7 @@ class TelaMais extends StatelessWidget {
             icone: Icons.cake,
             titulo: 'Doces',
             explicacao: 'Anotar as vendas de doces',
-            aoTocar: () => _abrir(context, const TelaDoces()),
+            aoTocar: () => _abrir(context, TelaDoces(banco: banco)),
           ),
           _ItemMais(
             icone: Icons.save,

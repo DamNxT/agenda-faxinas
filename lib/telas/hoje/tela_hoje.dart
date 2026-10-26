@@ -62,17 +62,29 @@ class _TelaHojeState extends State<TelaHoje> {
                 for (final faxina in faxinas)
                   Padding(
                     padding: const EdgeInsets.only(bottom: MedidasApp.espaco),
-                    child: CartaoFaxina(
-                      nome: dados.clientes[faxina.clienteId]!.nome,
-                      endereco: dados.clientes[faxina.clienteId]!.endereco,
-                      valorCentavos: dados.valorDe(faxina),
-                      detalhe: descreverFaxina(faxina),
-                      aoTocar: () => mostrarOpcoesFaxina(
-                        context: context,
-                        faxina: faxina,
-                        dados: dados,
-                        repositorio: RepositorioAgenda(widget.banco),
-                      ),
+                    child: Builder(
+                      builder: (_) {
+                        final reg = dados.registroDe(faxina);
+                        final valor = reg?.valorRecebidoCentavos ??
+                            dados.valorDe(faxina);
+                        final situacao = reg != null
+                            ? SituacaoFaxina.recebida
+                            : SituacaoFaxina.marcada;
+                        return CartaoFaxina(
+                          nome: dados.clientes[faxina.clienteId]!.nome,
+                          endereco: dados.clientes[faxina.clienteId]!.endereco,
+                          valorCentavos: valor,
+                          situacao: situacao,
+                          detalhe: descreverFaxina(faxina),
+                          aoTocar: () => mostrarOpcoesFaxina(
+                            context: context,
+                            faxina: faxina,
+                            dados: dados,
+                            repositorio: RepositorioAgenda(widget.banco),
+                            hoje: widget.hoje,
+                          ),
+                        );
+                      },
                     ),
                   ),
             ],

@@ -38,7 +38,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
             aoAbrirAgenda: () => _irPara(1),
           ),
           TelaAgenda(banco: widget.banco, hoje: _hoje),
-          const TelaGanhos(),
+          TelaGanhos(banco: widget.banco, hoje: _hoje),
           TelaMais(banco: widget.banco),
         ],
       ),

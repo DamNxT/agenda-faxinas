@@ -335,18 +335,30 @@ class _ListaDoDia extends StatelessWidget {
               for (final faxina in faxinas)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: CartaoFaxina(
-                    nome: dados.clientes[faxina.clienteId]!.nome,
-                    endereco: dados.clientes[faxina.clienteId]!.endereco,
-                    valorCentavos: dados.valorDe(faxina),
-                    detalhe: descreverFaxina(faxina),
-                    destacarHoje: ehHoje,
-                    aoTocar: () => mostrarOpcoesFaxina(
-                      context: context,
-                      faxina: faxina,
-                      dados: dados,
-                      repositorio: RepositorioAgenda(banco),
-                    ),
+                  child: Builder(
+                    builder: (_) {
+                      final reg = dados.registroDe(faxina);
+                      final valor =
+                          reg?.valorRecebidoCentavos ?? dados.valorDe(faxina);
+                      final situacao = reg != null
+                          ? SituacaoFaxina.recebida
+                          : SituacaoFaxina.marcada;
+                      return CartaoFaxina(
+                        nome: dados.clientes[faxina.clienteId]!.nome,
+                        endereco: dados.clientes[faxina.clienteId]!.endereco,
+                        valorCentavos: valor,
+                        situacao: situacao,
+                        detalhe: descreverFaxina(faxina),
+                        destacarHoje: ehHoje,
+                        aoTocar: () => mostrarOpcoesFaxina(
+                          context: context,
+                          faxina: faxina,
+                          dados: dados,
+                          repositorio: RepositorioAgenda(banco),
+                          hoje: dia,
+                        ),
+                      );
+                    },
                   ),
                 ),
             const SizedBox(height: 16),

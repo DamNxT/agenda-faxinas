@@ -140,11 +140,12 @@ void main() {
     await fechar(tester);
   });
 
-  testWidgets('Ganhos explica o que vai aparecer', (tester) async {
+  testWidgets('Ganhos mostra resumo do mês', (tester) async {
     await abrir(tester);
     await tester.tap(aba('Ganhos'));
     await tester.pumpAndSettle();
-    expect(find.text('Seus ganhos vão aparecer aqui'), findsOneWidget);
+    expect(find.text('Total geral do mês'), findsOneWidget);
+    expect(find.text('Nenhum ganho neste mês'), findsOneWidget);
     await fechar(tester);
   });
 }

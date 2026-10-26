@@ -11,12 +11,25 @@ class DadosAgenda {
     required this.regras,
     required this.excecoes,
     required this.avulsos,
+    required this.registros,
   });
 
   final Map<int, Cliente> clientes;
   final List<RegraRecorrencia> regras;
   final List<Excecao> excecoes;
   final List<AtendimentoAvulso> avulsos;
+  final List<RegistroDiaria> registros;
+
+  /// Registro de diária desta faxina (se houver).
+  RegistroDiaria? registroDe(FaxinaDoDia faxina) {
+    final dia = soDia(faxina.data);
+    for (final r in registros) {
+      if (r.clienteId == faxina.clienteId && mesmoDia(soDia(r.data), dia)) {
+        return r;
+      }
+    }
+    return null;
+  }
 
   /// Faxinas de [de] até [ate], já calculadas a partir das regras.
   Map<DateTime, List<FaxinaDoDia>> faxinasEntre(DateTime de, DateTime ate) {
@@ -40,8 +53,10 @@ class DadosAgenda {
     return agenda;
   }
 
-  /// Valor da faxina: o gravado na avulsa ou a diária atual do cliente.
+  /// Valor da faxina: o gravado no registro de diária, na avulsa ou a diária atual.
   int valorDe(FaxinaDoDia faxina) {
+    final reg = registroDe(faxina);
+    if (reg != null) return reg.valorRecebidoCentavos;
     final avulsoId = faxina.avulsoId;
     if (avulsoId != null) {
       return avulsos.firstWhere((a) => a.id == avulsoId).valorCentavos;
@@ -58,8 +73,8 @@ class RepositorioAgenda {
 
   final BancoDados _banco;
 
-  /// Lê tudo de novo sempre que clientes, regras, exceções ou faxinas
-  /// avulsas mudarem.
+  /// Lê tudo de novo sempre que clientes, regras, exceções, faxinas avulsas ou
+  /// diárias registradas mudarem.
   Stream<DadosAgenda> observar() {
     return _banco
         .customSelect(
@@ -69,6 +84,7 @@ class RepositorioAgenda {
             _banco.regrasRecorrencia,
             _banco.excecoes,
             _banco.atendimentosAvulsos,
+            _banco.registrosDiaria,
           },
         )
         .watch()
@@ -83,6 +99,7 @@ class RepositorioAgenda {
         regras: await _banco.select(_banco.regrasRecorrencia).get(),
         excecoes: await _banco.select(_banco.excecoes).get(),
         avulsos: await _banco.select(_banco.atendimentosAvulsos).get(),
+        registros: await _banco.select(_banco.registrosDiaria).get(),
       );
     });
   }
@@ -217,4 +234,39 @@ class RepositorioAgenda {
           ))
         .go();
   }
+
+  /// Salva ou atualiza a diária recebida por uma faxina num dia.
+  Future<void> salvarRegistroDiaria({
+    required int clienteId,
+    required DateTime data,
+    required int valorRecebidoCentavos,
+  }) async {
+    final dia = soDia(data);
+    final existentes = await (_banco.select(_banco.registrosDiaria)
+          ..where((r) => r.clienteId.equals(clienteId) & r.data.equals(dia)))
+        .get();
+
+    if (existentes.isNotEmpty) {
+      await (_banco.update(_banco.registrosDiaria)
+            ..where((r) => r.id.equals(existentes.first.id)))
+          .write(
+        RegistrosDiariaCompanion(
+          valorRecebidoCentavos: Value(valorRecebidoCentavos),
+        ),
+      );
+    } else {
+      await _banco.into(_banco.registrosDiaria).insert(
+            RegistrosDiariaCompanion.insert(
+              clienteId: clienteId,
+              data: dia,
+              valorRecebidoCentavos: valorRecebidoCentavos,
+            ),
+          );
+    }
+  }
+
+  /// Exclui um registro de diária recebida.
+  Future<void> excluirRegistroDiaria(int id) =>
+      (_banco.delete(_banco.registrosDiaria)..where((r) => r.id.equals(id)))
+          .go();
 }

@@ -5,9 +5,11 @@ import '../../dados/banco/banco_dados.dart';
 import '../../dados/repositorios/repositorio_agenda.dart';
 import '../../tema/tema_app.dart';
 import '../../util/datas.dart';
+import '../../util/dinheiro.dart';
 import '../../widgets/avatar_cliente.dart';
 import '../../widgets/avisos.dart';
 import '../../widgets/botao_principal.dart';
+import '../../widgets/campo_valor.dart';
 
 export '../../widgets/titulo_campo.dart';
 
@@ -176,20 +178,30 @@ String descreverFaxina(FaxinaDoDia faxina) {
   return base;
 }
 
-enum _OpcaoFaxina { mudarDia, cancelar, encerrarFixa }
+enum _OpcaoFaxina {
+  registrarDiaria,
+  removerDiaria,
+  mudarDia,
+  cancelar,
+  encerrarFixa,
+}
 
-/// Janela de opções ao tocar em uma faxina: Mudar de dia, Cancelar ou Encerrar.
+/// Janela de opções ao tocar em uma faxina: Registrar diária, Mudar de dia, Cancelar ou Encerrar.
 Future<void> mostrarOpcoesFaxina({
   required BuildContext context,
   required FaxinaDoDia faxina,
   required DadosAgenda dados,
   required RepositorioAgenda repositorio,
+  DateTime? hoje,
 }) async {
   final cliente = dados.clientes[faxina.clienteId];
   if (cliente == null) return;
 
   final dataAtual = faxina.data;
   final dataOriginal = faxina.dataOriginal ?? dataAtual;
+  final diaHoje = soDia(hoje ?? DateTime.now());
+  final jaPassouOuHoje = !dataAtual.isAfter(diaHoje);
+  final registroExistente = dados.registroDe(faxina);
 
   final opcao = await showModalBottomSheet<_OpcaoFaxina>(
     context: context,
@@ -211,6 +223,52 @@ Future<void> mostrarOpcoesFaxina({
                   ),
             ),
             const SizedBox(height: 20),
+            if (jaPassouOuHoje) ...[
+              ElevatedButton.icon(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(_OpcaoFaxina.registrarDiaria),
+                icon: const Icon(Icons.payments, size: 28),
+                label: Text(
+                  registroExistente != null
+                      ? 'Editar diária recebida'
+                      : 'Registrar diária',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CoresApp.sucesso,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(60),
+                  alignment: Alignment.centerLeft,
+                  textStyle: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (registroExistente != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(_OpcaoFaxina.removerDiaria),
+                  icon: const Icon(Icons.money_off,
+                      size: 28, color: CoresApp.erro),
+                  label: const Text(
+                    'Remover registro de diária',
+                    style: TextStyle(color: CoresApp.erro),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(60),
+                    alignment: Alignment.centerLeft,
+                    foregroundColor: CoresApp.erro,
+                    side: const BorderSide(color: CoresApp.erro, width: 2),
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+            ],
             OutlinedButton.icon(
               onPressed: () => Navigator.of(ctx).pop(_OpcaoFaxina.mudarDia),
               icon: const Icon(Icons.calendar_today, size: 28),
@@ -273,6 +331,45 @@ Future<void> mostrarOpcoesFaxina({
   if (opcao == null || !context.mounted) return;
 
   switch (opcao) {
+    case _OpcaoFaxina.registrarDiaria:
+      final valorInicial = registroExistente?.valorRecebidoCentavos ??
+          cliente.valorPadraoCentavos;
+      final novoValor = await _mostrarDialogoRegistrarDiaria(
+        context: context,
+        clienteNome: cliente.nome,
+        data: dataAtual,
+        valorInicialCentavos: valorInicial,
+      );
+      if (novoValor == null || !context.mounted) return;
+
+      await repositorio.salvarRegistroDiaria(
+        clienteId: faxina.clienteId,
+        data: dataAtual,
+        valorRecebidoCentavos: novoValor,
+      );
+      if (!context.mounted) return;
+
+      mostrarAviso(
+        context,
+        'Diária de ${formatarReais(novoValor)} registrada!',
+      );
+
+    case _OpcaoFaxina.removerDiaria:
+      if (registroExistente == null) return;
+      final confirmou = await confirmarAcao(
+        context,
+        titulo: 'Remover diária?',
+        mensagem:
+            'O registro de valor recebido no dia ${formatarDiaCurto(dataAtual)} será removido.',
+        textoConfirmar: 'Sim, remover',
+      );
+      if (!confirmou || !context.mounted) return;
+
+      await repositorio.excluirRegistroDiaria(registroExistente.id);
+      if (!context.mounted) return;
+
+      mostrarAviso(context, 'Registro de diária removido.');
+
     case _OpcaoFaxina.mudarDia:
       final novaData = await showDatePicker(
         context: context,
@@ -350,4 +447,64 @@ Future<void> mostrarOpcoesFaxina({
 
       mostrarAviso(context, 'Faxina fixa encerrada.');
   }
+}
+
+Future<int?> _mostrarDialogoRegistrarDiaria({
+  required BuildContext context,
+  required String clienteNome,
+  required DateTime data,
+  required int valorInicialCentavos,
+}) {
+  final controlador = TextEditingController(
+    text: formatarValorParaCampo(valorInicialCentavos),
+  );
+  final formKey = GlobalKey<FormState>();
+
+  return showModalBottomSheet<int>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Registrar diária',
+                style: Theme.of(ctx).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$clienteNome • ${formatarDiaCompleto(data)}',
+                style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                      color: CoresApp.textoSecundario,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              CampoValor(
+                controlador: controlador,
+                rotulo: r'Valor recebido (R$)',
+              ),
+              const SizedBox(height: 20),
+              BotaoPrincipal(
+                texto: 'Salvar diária',
+                aoTocar: () {
+                  if (formKey.currentState?.validate() ?? false) {
+                    final valor = converterParaCentavos(controlador.text);
+                    if (valor != null) {
+                      Navigator.of(ctx).pop(valor);
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
