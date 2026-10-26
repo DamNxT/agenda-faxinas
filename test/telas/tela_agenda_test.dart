@@ -273,7 +273,13 @@ void main() {
       expect(find.text('Segunda-feira, 26 de outubro'), findsWidgets);
 
       // Toca no cartão da faxina para abrir opções
-      await tocar(tester, find.widgetWithText(CartaoFaxina, 'Cliente A'));
+      final cartao = find
+          .ancestor(
+            of: find.text('Cliente A'),
+            matching: find.byType(CartaoFaxina),
+          )
+          .first;
+      await tocar(tester, cartao);
       expect(find.text('Mudar de dia'), findsOneWidget);
       expect(find.text('Cancelar esta faxina'), findsOneWidget);
 
@@ -281,15 +287,18 @@ void main() {
       await tocar(tester, find.text('Mudar de dia'));
 
       // Escolhe terça-feira 27/10 no DatePicker
-      await tester.tap(find.text('27'));
+      await tester.tap(find.text('27').last);
       await tester.pumpAndSettle();
       await tocar(tester, find.text('OK'));
 
-      // Verifica aviso de sucesso
+      // Verifica aviso de sucesso e fecha a lista de segunda
       expect(
         find.text('Faxina movida para Terça, 27/10/2026.'),
         findsOneWidget,
       );
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      await tocar(tester, find.text('Fechar'));
 
       // Na segunda 26/10 não tem mais Cliente A
       expect(
@@ -308,7 +317,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tocar(tester, dia(2026, 10, 27));
+      await tester.tap(dia(2026, 10, 27));
+      await tester.pumpAndSettle();
       expect(
         find.text('Fixa: toda semana (remarcada de segunda)'),
         findsOneWidget,

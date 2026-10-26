@@ -341,15 +341,12 @@ class _ListaDoDia extends StatelessWidget {
                     valorCentavos: dados.valorDe(faxina),
                     detalhe: descreverFaxina(faxina),
                     destacarHoje: ehHoje,
-                    aoTocar: () async {
-                      Navigator.of(context).pop();
-                      await mostrarOpcoesFaxina(
-                        context: context,
-                        faxina: faxina,
-                        dados: dados,
-                        repositorio: RepositorioAgenda(banco),
-                      );
-                    },
+                    aoTocar: () => mostrarOpcoesFaxina(
+                      context: context,
+                      faxina: faxina,
+                      dados: dados,
+                      repositorio: RepositorioAgenda(banco),
+                    ),
                   ),
                 ),
             const SizedBox(height: 16),
