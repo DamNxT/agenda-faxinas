@@ -38,6 +38,13 @@ class _TelaGanhosState extends State<TelaGanhos> {
     });
   }
 
+  Future<void> _atualizar() async {
+    setState(() {
+      _streamGanhos = _repositorio.observarMes(_referencia);
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,9 +59,12 @@ class _TelaGanhosState extends State<TelaGanhos> {
 
           final itens = dados.itens;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
+          return RefreshIndicator(
+            onRefresh: _atualizar,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _NavegacaoMesGanhos(
@@ -108,7 +118,8 @@ class _TelaGanhosState extends State<TelaGanhos> {
                     ),
               ],
             ),
-          );
+          ),
+        );
         },
       ),
     );

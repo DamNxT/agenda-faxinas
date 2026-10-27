@@ -74,6 +74,13 @@ class _TelaDocesState extends State<TelaDoces> {
     mostrarAviso(context, 'Registro de venda excluído.');
   }
 
+  Future<void> _atualizar() async {
+    setState(() {
+      _streamDoces = _repositorio.observarMes(_referencia);
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,9 +95,12 @@ class _TelaDocesState extends State<TelaDoces> {
 
           final vendas = dados.vendas;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
+          return RefreshIndicator(
+            onRefresh: _atualizar,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _NavegacaoMes(
@@ -125,7 +135,8 @@ class _TelaDocesState extends State<TelaDoces> {
                     ),
               ],
             ),
-          );
+          ),
+        );
         },
       ),
       bottomNavigationBar: RodapeBotao(

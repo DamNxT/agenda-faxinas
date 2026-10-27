@@ -35,6 +35,11 @@ class _TelaClientesState extends State<TelaClientes> {
     if (mensagem != null && mounted) mostrarAviso(context, mensagem);
   }
 
+  Future<void> _atualizar() async {
+    setState(() {});
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,15 +51,26 @@ class _TelaClientesState extends State<TelaClientes> {
             return const Center(child: CircularProgressIndicator());
           }
           final clientes = snapshot.data!;
-          if (clientes.isEmpty) return const _ListaVazia();
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: clientes.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _CartaoCliente(
-              cliente: clientes[i],
-              aoTocar: () => _abrirFormulario(clientes[i]),
-            ),
+          return RefreshIndicator(
+            onRefresh: _atualizar,
+            child: clientes.isEmpty
+                ? const SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: 500,
+                      child: _ListaVazia(),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: clientes.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) => _CartaoCliente(
+                      cliente: clientes[i],
+                      aoTocar: () => _abrirFormulario(clientes[i]),
+                    ),
+                  ),
           );
         },
       ),

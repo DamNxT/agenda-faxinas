@@ -80,6 +80,11 @@ class _TelaAgendaState extends State<TelaAgenda> {
     );
   }
 
+  Future<void> _atualizar() async {
+    setState(() {});
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,9 +108,12 @@ class _TelaAgendaState extends State<TelaAgenda> {
           }
           final faxinas = dados.faxinasEntre(de, ate);
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
+          return RefreshIndicator(
+            onRefresh: _atualizar,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _CartaoHoje(
@@ -163,7 +171,8 @@ class _TelaAgendaState extends State<TelaAgenda> {
                   ),
               ],
             ),
-          );
+          ),
+        );
         },
       ),
       bottomNavigationBar: RodapeBotao(

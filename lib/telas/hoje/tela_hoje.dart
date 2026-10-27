@@ -30,6 +30,11 @@ class _TelaHojeState extends State<TelaHoje> {
   late final Stream<DadosAgenda> _dados = RepositorioAgenda(widget.banco)
       .observar();
 
+  Future<void> _atualizar() async {
+    setState(() {});
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,9 +48,12 @@ class _TelaHojeState extends State<TelaHoje> {
           }
           final faxinas = dados.faxinasDoDia(widget.hoje);
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
+          return RefreshIndicator(
+            onRefresh: _atualizar,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
               _CabecalhoData(hoje: widget.hoje, quantidade: faxinas.length),
               const SizedBox(height: MedidasApp.espacoG),
               if (faxinas.isEmpty)
@@ -88,6 +96,7 @@ class _TelaHojeState extends State<TelaHoje> {
                     ),
                   ),
             ],
+            ),
           );
         },
       ),
