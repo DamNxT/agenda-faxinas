@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "br.com.danilo.agenda_faxinas"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

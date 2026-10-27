@@ -40,7 +40,7 @@ class TelaMais extends StatelessWidget {
             icone: Icons.save,
             titulo: 'Backup',
             explicacao: 'Guardar uma cópia dos dados',
-            aoTocar: () => _abrir(context, const TelaBackup()),
+            aoTocar: () => _abrir(context, TelaBackup(banco: banco)),
           ),
           _ItemMais(
             icone: Icons.settings,
