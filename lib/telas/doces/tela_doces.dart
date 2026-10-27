@@ -52,6 +52,11 @@ class _TelaDocesState extends State<TelaDoces> {
     );
     if (!mounted) return;
 
+    setState(() {
+      _referencia = DateTime(criada.data.year, criada.data.month, 1);
+      _streamDoces = _repositorio.observarMes(_referencia);
+    });
+
     mostrarAviso(
       context,
       'Venda de doces registrada (${formatarReais(criada.valorTotalCentavos)})!',
@@ -70,6 +75,10 @@ class _TelaDocesState extends State<TelaDoces> {
 
     await _repositorio.excluirVendaDoces(venda.id);
     if (!mounted) return;
+
+    setState(() {
+      _streamDoces = _repositorio.observarMes(_referencia);
+    });
 
     mostrarAviso(context, 'Registro de venda excluído.');
   }

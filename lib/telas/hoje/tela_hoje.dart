@@ -27,8 +27,15 @@ class TelaHoje extends StatefulWidget {
 }
 
 class _TelaHojeState extends State<TelaHoje> {
-  late final Stream<DadosAgenda> _dados = RepositorioAgenda(widget.banco)
-      .observar();
+  late Stream<DadosAgenda> _dados = RepositorioAgenda(widget.banco).observar();
+
+  @override
+  void didUpdateWidget(covariant TelaHoje oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    setState(() {
+      _dados = RepositorioAgenda(widget.banco).observar();
+    });
+  }
 
   Future<void> _atualizar() async {
     setState(() {});

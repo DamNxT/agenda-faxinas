@@ -28,7 +28,15 @@ class TelaAgenda extends StatefulWidget {
 
 class _TelaAgendaState extends State<TelaAgenda> {
   late final RepositorioAgenda _repositorio = RepositorioAgenda(widget.banco);
-  late final Stream<DadosAgenda> _dados = _repositorio.observar();
+  late Stream<DadosAgenda> _dados = _repositorio.observar();
+
+  @override
+  void didUpdateWidget(covariant TelaAgenda oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    setState(() {
+      _dados = _repositorio.observar();
+    });
+  }
   late final DateTime _hoje = soDia(widget.hoje ?? DateTime.now());
 
   /// Um dia qualquer da semana (ou do mês) que está aparecendo.

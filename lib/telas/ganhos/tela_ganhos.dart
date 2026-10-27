@@ -31,6 +31,14 @@ class _TelaGanhosState extends State<TelaGanhos> {
     _streamGanhos = _repositorio.observarMes(_referencia);
   }
 
+  @override
+  void didUpdateWidget(covariant TelaGanhos oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    setState(() {
+      _streamGanhos = _repositorio.observarMes(_referencia);
+    });
+  }
+
   void _mudarMes(int passo) {
     setState(() {
       _referencia = DateTime(_referencia.year, _referencia.month + passo, 1);
