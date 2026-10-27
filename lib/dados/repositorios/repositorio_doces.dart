@@ -25,8 +25,9 @@ class RepositorioDoces {
 
   final BancoDados _banco;
 
-  Stream<DadosDocesMes> observarMes(DateTime mes) {
-    return _banco
+  Stream<DadosDocesMes> observarMes(DateTime mes) async* {
+    yield await carregarMes(mes);
+    yield* _banco
         .customSelect(
           'SELECT 1',
           readsFrom: {_banco.vendasDoces},

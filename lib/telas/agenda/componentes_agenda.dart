@@ -193,6 +193,7 @@ Future<void> mostrarOpcoesFaxina({
   required DadosAgenda dados,
   required RepositorioAgenda repositorio,
   DateTime? hoje,
+  VoidCallback? aoAtualizar,
 }) async {
   final cliente = dados.clientes[faxina.clienteId];
   if (cliente == null) return;
@@ -349,6 +350,7 @@ Future<void> mostrarOpcoesFaxina({
       );
       if (!context.mounted) return;
 
+      aoAtualizar?.call();
       mostrarAviso(
         context,
         'Diária de ${formatarReais(novoValor)} registrada!',
@@ -368,6 +370,7 @@ Future<void> mostrarOpcoesFaxina({
       await repositorio.excluirRegistroDiaria(registroExistente.id);
       if (!context.mounted) return;
 
+      aoAtualizar?.call();
       mostrarAviso(context, 'Registro de diária removido.');
 
     case _OpcaoFaxina.mudarDia:
@@ -387,6 +390,7 @@ Future<void> mostrarOpcoesFaxina({
       await repositorio.moverFaxina(faxina: faxina, novaData: destino);
       if (!context.mounted) return;
 
+      aoAtualizar?.call();
       mostrarAviso(
         context,
         'Faxina movida para ${formatarDiaCurto(destino)}.',
@@ -399,6 +403,7 @@ Future<void> mostrarOpcoesFaxina({
           } else {
             await repositorio.moverFaxina(faxina: faxina, novaData: dataAtual);
           }
+          aoAtualizar?.call();
         },
       );
 
@@ -415,6 +420,7 @@ Future<void> mostrarOpcoesFaxina({
       await repositorio.cancelarFaxina(faxina);
       if (!context.mounted) return;
 
+      aoAtualizar?.call();
       mostrarAviso(
         context,
         'Faxina do dia ${formatarDiaCurto(dataAtual)} cancelada.',
@@ -425,6 +431,7 @@ Future<void> mostrarOpcoesFaxina({
               dataOriginal: dataOriginal,
             );
           }
+          aoAtualizar?.call();
         },
       );
 
@@ -445,6 +452,7 @@ Future<void> mostrarOpcoesFaxina({
       );
       if (!context.mounted) return;
 
+      aoAtualizar?.call();
       mostrarAviso(context, 'Faxina fixa encerrada.');
   }
 }

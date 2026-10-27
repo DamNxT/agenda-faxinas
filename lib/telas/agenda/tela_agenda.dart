@@ -76,6 +76,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
         dados: dados,
         ehHoje: mesmoDia(dia, _hoje),
         banco: widget.banco,
+        aoAtualizar: _atualizar,
       ),
     );
   }
@@ -316,12 +317,14 @@ class _ListaDoDia extends StatelessWidget {
     required this.dados,
     required this.ehHoje,
     required this.banco,
+    this.aoAtualizar,
   });
 
   final DateTime dia;
   final DadosAgenda dados;
   final bool ehHoje;
   final BancoDados banco;
+  final VoidCallback? aoAtualizar;
 
   @override
   Widget build(BuildContext context) {
@@ -365,6 +368,7 @@ class _ListaDoDia extends StatelessWidget {
                           dados: dados,
                           repositorio: RepositorioAgenda(banco),
                           hoje: dia,
+                          aoAtualizar: aoAtualizar,
                         ),
                       );
                     },

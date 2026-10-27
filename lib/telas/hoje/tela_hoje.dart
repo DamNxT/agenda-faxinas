@@ -90,6 +90,7 @@ class _TelaHojeState extends State<TelaHoje> {
                             dados: dados,
                             repositorio: RepositorioAgenda(widget.banco),
                             hoje: widget.hoje,
+                            aoAtualizar: _atualizar,
                           ),
                         );
                       },
